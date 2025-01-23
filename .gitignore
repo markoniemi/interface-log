@@ -1,0 +1,7 @@
+# Project exclude paths
+/target/
+.idea/
+.classpath
+.factorypath
+.project
+.settings/
