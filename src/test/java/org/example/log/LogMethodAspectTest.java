@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+
 import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,10 +26,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @Import(TestConfig.class)
 class LogMethodAspectTest {
-  @Autowired
-  TestService testService;
-  @Spy
-  Logger log = LogManager.getLogger("test");
+  @Autowired TestService testService;
+  @Spy Logger log = LogManager.getLogger("test");
   private MockedStatic<LogManager> logManager;
 
   @Test
@@ -48,60 +47,110 @@ class LogMethodAspectTest {
   }
 
   @Test
-  void returnClass() throws Throwable {
-    testService.returnClass(new User("username", "password", "email", Role.ROLE_USER));
-    verify(log).info(eq("{}.{} | OK | {}ms | {}"), eq("TestService"), eq("returnClass"),
-        anyLong(), anyString());
+  void excludeParameter() throws Throwable {
+    testService.excludeParameter(new User("username", "password", "email", Role.ROLE_USER));
+    verify(log)
+        .info(
+            eq("{}.{} | OK | {}ms | {}"),
+            eq("TestService"),
+            eq("excludeParameter"),
+            anyLong(),
+            eq(""));
   }
+
   @Test
   void logParameterWithPrinter() throws Throwable {
     testService.logParameterWithPrinter(new User("username", "password", "email", Role.ROLE_USER));
-    verify(log).info(eq("{}.{} | OK | {}ms | {}"), eq("TestService"), eq("logParameterWithPrinter"),
-        anyLong(), anyString());
+    verify(log)
+        .info(
+            eq("{}.{} | OK | {}ms | {}"),
+            eq("TestService"),
+            eq("logParameterWithPrinter"),
+            anyLong(),
+            anyString());
   }
 
   @Test
   void returnPrimitive() throws Throwable {
     testService.returnPrimitive();
-    verify(log).info(eq("{}.{} | OK | {}ms | {}"), eq("TestService"), eq("returnPrimitive"),
-        anyLong(), anyString());
+    verify(log)
+        .info(
+            eq("{}.{} | OK | {}ms | {}"),
+            eq("TestService"),
+            eq("returnPrimitive"),
+            anyLong(),
+            anyString());
   }
 
   @Test
   void useDifferentParameters() throws Throwable {
-    testService.useDifferentParameters(new User("username", "password", "email", Role.ROLE_USER),
-        "string", new Date(), false);
-    verify(log).info(eq("{}.{} | OK | {}ms | {}"), eq("TestService"), eq("useDifferentParameters"),
-        anyLong(), anyString());
+    testService.useDifferentParameters(
+        new User("username", "password", "email", Role.ROLE_USER), "string", new Date(), false);
+    verify(log)
+        .info(
+            eq("{}.{} | OK | {}ms | {}"),
+            eq("TestService"),
+            eq("useDifferentParameters"),
+            anyLong(),
+            anyString());
   }
 
   @Test
   void useDifferentLogger() throws Throwable {
     testService.useDifferentLogger();
-    verify(log).info(eq("{}.{} | OK | {}ms | {}"), eq("TestService"), eq("useDifferentLogger"),
-        anyLong(), anyString());
+    verify(log)
+        .info(
+            eq("{}.{} | OK | {}ms | {}"),
+            eq("TestService"),
+            eq("useDifferentLogger"),
+            anyLong(),
+            anyString());
   }
 
   @Test
   void throwException() throws Throwable {
-    assertThrows(IllegalArgumentException.class, () -> testService
-        .throwException(new User("username", "password", "email", Role.ROLE_USER)));
-    verify(log).warn(eq("{}.{} | {} | {}ms | {}"), eq("TestService"), eq("throwException"),eq("IllegalArgumentException"),
-        anyLong(), anyString());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            testService.throwException(new User("username", "password", "email", Role.ROLE_USER)));
+    verify(log)
+        .warn(
+            eq("{}.{} | {} | {}ms | {}"),
+            eq("TestService"),
+            eq("throwException"),
+            eq("IllegalArgumentException"),
+            anyLong(),
+            anyString());
   }
 
   @Test
   @Disabled
   void throwAndLogException() throws Throwable {
     assertThrows(RuntimeException.class, () -> testService.throwAndLogException());
-    verify(log).warn(eq("{}.{} | {} | {}ms | {}"), eq("TestService"),
-        eq("throwAndLogException"), anyLong(), anyString(), any(Exception.class));
+    verify(log)
+        .warn(
+            eq("{}.{} | {} | {}ms | {}"),
+            eq("TestService"),
+            eq("throwAndLogException"),
+            anyLong(),
+            anyString(),
+            any(Exception.class));
   }
+
   @Test
   void throwAndExcludeException() throws Throwable {
-    assertThrows(IllegalArgumentException.class, () -> testService
-        .throwAndExcludeException(new User("username", "password", "email", Role.ROLE_USER)));
-    verify(log).warn(eq("{}.{} | {} | {}ms | {}"), eq("TestService"), eq("throwAndExcludeException"),eq("IllegalArgumentException"),
-        anyLong(), anyString());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            testService.throwAndExcludeException(
+                new User("username", "password", "email", Role.ROLE_USER)));
+    verify(log)
+        .warn(
+            eq("{}.{} | {} | {}ms | {}"),
+            eq("TestService"),
+            eq("throwAndExcludeException"),
+            eq("IllegalArgumentException"),
+            anyLong(),
+            anyString());
   }
 }

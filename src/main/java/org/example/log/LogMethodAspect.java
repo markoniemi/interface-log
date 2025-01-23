@@ -1,7 +1,9 @@
 package org.example.log;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,21 +37,37 @@ public class LogMethodAspect {
     return result;
   }
 
-  private void logExecution(JoinPoint joinPoint, LogMethod logMethod, long startTime, Throwable e) throws ReflectiveOperationException {
+  private void logExecution(JoinPoint joinPoint, LogMethod logMethod, long startTime, Throwable e)
+      throws ReflectiveOperationException {
     Logger log = getLog(joinPoint, logMethod);
     String className = joinPoint.getTarget().getClass().getSimpleName();
     String methodName = joinPoint.getSignature().getName();
     String parameters = getParameters(joinPoint, logMethod);
     if (e == null) {
-      log.info("{}.{} | OK | {}ms | {}", className, methodName,
-          System.currentTimeMillis() - startTime, parameters);
+      log.info(
+          "{}.{} | OK | {}ms | {}",
+          className,
+          methodName,
+          System.currentTimeMillis() - startTime,
+          parameters);
     } else {
       if (logMethod.logStackTrace() && !skipException(logMethod, e)) {
-        log.warn("{}.{} | {} | {}ms | {}", className, methodName,e.getClass().getSimpleName(),
-            System.currentTimeMillis() - startTime, parameters, e);
+        log.warn(
+            "{}.{} | {} | {}ms | {}",
+            className,
+            methodName,
+            e.getClass().getSimpleName(),
+            System.currentTimeMillis() - startTime,
+            parameters,
+            e);
       } else {
-        log.warn("{}.{} | {} | {}ms | {}", className, methodName,e.getClass().getSimpleName(),
-            System.currentTimeMillis() - startTime, parameters);
+        log.warn(
+            "{}.{} | {} | {}ms | {}",
+            className,
+            methodName,
+            e.getClass().getSimpleName(),
+            System.currentTimeMillis() - startTime,
+            parameters);
       }
     }
   }
@@ -64,30 +82,34 @@ public class LogMethodAspect {
   }
 
   private Logger getLog(JoinPoint joinPoint, LogMethod logMethod) {
-    String logName = StringUtils.isNotEmpty(logMethod.logName()) ? logMethod.logName()
-        : joinPoint.getTarget().getClass().getCanonicalName();
+    String logName =
+        StringUtils.isNotEmpty(logMethod.logName())
+            ? logMethod.logName()
+            : joinPoint.getTarget().getClass().getCanonicalName();
     return LogManager.getLogger(logName);
   }
 
-  private String getParameters(JoinPoint joinPoint, LogMethod logMethod) throws ReflectiveOperationException {
-    ParameterPrinter printer =null; 
-    if (StringUtils.isNotEmpty( logMethod.printer())){
-          printer = (ParameterPrinter) Class.forName(logMethod.printer()).getDeclaredConstructor().newInstance();
+  private String getParameters(JoinPoint joinPoint, LogMethod logMethod)
+      throws ReflectiveOperationException {
+    ParameterPrinter printer = null;
+    if (StringUtils.isNotEmpty(logMethod.printer())) {
+      printer =
+          (ParameterPrinter)
+              Class.forName(logMethod.printer()).getDeclaredConstructor().newInstance();
     }
     String[] parameterNames = ((MethodSignature) joinPoint.getSignature()).getParameterNames();
     Object[] parameters = joinPoint.getArgs();
     StringBuilder parameterString = new StringBuilder();
-    for (int i = 0; i < parameters.length; i++) {
+    for (Object parameter : parameters) {
       if (isLogged(parameterNames, logMethod.exclude())) {
-        parameterString.append(printParameter(parameters[i],printer));
-        parameterString.append(", ");
+        parameterString.append(printParameter(parameter, printer)).append(", ");
       }
     }
     return parameterString.toString();
   }
 
-  private String printParameter(Object parameter,ParameterPrinter printer) {
-    if (printer!=null) {
+  private String printParameter(Object parameter, ParameterPrinter printer) {
+    if (printer != null) {
       return printer.print(parameter);
     }
     if (parameter instanceof Date date) {
@@ -98,6 +120,6 @@ public class LogMethodAspect {
   }
 
   private boolean isLogged(String[] parameterNames, String[] skipArgs) {
-    return true;
+    return Collections.disjoint(Set.of(parameterNames), Set.of(skipArgs));
   }
 }
