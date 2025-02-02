@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="ERROR">
   <Appenders>
-    <Console name="Console" target="SYSTEM_OUT">
+    <Console name="Console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="%highlight{%-5level} %style{%logger{1.}}{bright} - %highlight{%message%n}" disableAnsi="false"/>
     </Console>
   </Appenders>

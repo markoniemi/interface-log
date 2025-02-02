@@ -1,14 +1,17 @@
 package org.example.log;
 
 import java.util.Date;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+import lombok.extern.log4j.Log4j2;
 
 @Service
-@Log4j2
-public class TestService {
+//@Log4j2
+public class MethodAnnotationService {
+  public static Logger log = LogManager.getLogger(MethodAnnotationService.class);
   @LogMethod
-  public User[] returnList() {
+  public User[] useDefaults() {
     User[] users = {new User("username", "password", "email", Role.ROLE_USER)};
     return users;
   }
@@ -24,7 +27,7 @@ public class TestService {
     return;
   }
 
-  @LogMethod
+  @LogMethod(prefix="v1/")
   public int returnPrimitive() {
     return 0;
   }
@@ -51,6 +54,10 @@ public class TestService {
 
   @LogMethod(logName = "org.example.api.user.TestServiceImpl")
   public User useDifferentLogger() {
+    return null;
+  }
+  @LogMethod(logName = "#this.log")
+  public User useLoggerFromSpel( ) {
     return null;
   }
 }

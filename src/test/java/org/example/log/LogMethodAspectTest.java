@@ -1,13 +1,15 @@
 package org.example.log;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-
 import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,20 +22,18 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith({SpringExtension.class,OutputCaptureExtension.class})
 @Import(TestConfig.class)
 class LogMethodAspectTest {
-  @Autowired TestService testService;
-  @Spy Logger log = LogManager.getLogger("test");
+  @Autowired MethodAnnotationService methodAnnotationService;
+  @Autowired ClassAnnotationService classAnnotationService;
+  @Spy Logger log = LogManager.getLogger("logSpy");
   private MockedStatic<LogManager> logManager;
-
-  @Test
-  void returnList() {
-    assertNotNull(testService.returnList());
-  }
 
   @BeforeEach
   void setUp() {
@@ -47,24 +47,34 @@ class LogMethodAspectTest {
   }
 
   @Test
+  void useDefaults(CapturedOutput output) {
+    assertNotNull(methodAnnotationService.useDefaults());
+    assertThat(output).contains("name | useDefaults | OK | "," | []");
+  }
+
+  @Test
   void excludeParameter() throws Throwable {
-    testService.excludeParameter(new User("username", "password", "email", Role.ROLE_USER));
+    methodAnnotationService.excludeParameter(
+        new User("username", "password", "email", Role.ROLE_USER));
     verify(log)
         .info(
-            eq("{}.{} | OK | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | OK | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("excludeParameter"),
             anyLong(),
-            eq(""));
+            anyString());
   }
 
   @Test
   void logParameterWithPrinter() throws Throwable {
-    testService.logParameterWithPrinter(new User("username", "password", "email", Role.ROLE_USER));
+    methodAnnotationService.logParameterWithPrinter(
+        new User("username", "password", "email", Role.ROLE_USER));
     verify(log)
         .info(
-            eq("{}.{} | OK | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | OK | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("logParameterWithPrinter"),
             anyLong(),
             anyString());
@@ -72,11 +82,12 @@ class LogMethodAspectTest {
 
   @Test
   void returnPrimitive() throws Throwable {
-    testService.returnPrimitive();
+    methodAnnotationService.returnPrimitive();
     verify(log)
         .info(
-            eq("{}.{} | OK | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | OK | {}ms | {}"),
+            eq("name"),
+            eq("v1/"),
             eq("returnPrimitive"),
             anyLong(),
             anyString());
@@ -84,12 +95,13 @@ class LogMethodAspectTest {
 
   @Test
   void useDifferentParameters() throws Throwable {
-    testService.useDifferentParameters(
+    methodAnnotationService.useDifferentParameters(
         new User("username", "password", "email", Role.ROLE_USER), "string", new Date(), false);
     verify(log)
         .info(
-            eq("{}.{} | OK | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | OK | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("useDifferentParameters"),
             anyLong(),
             anyString());
@@ -97,14 +109,21 @@ class LogMethodAspectTest {
 
   @Test
   void useDifferentLogger() throws Throwable {
-    testService.useDifferentLogger();
+    methodAnnotationService.useDifferentLogger();
     verify(log)
         .info(
-            eq("{}.{} | OK | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | OK | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("useDifferentLogger"),
             anyLong(),
             anyString());
+  }
+
+  @Test
+  void useLoggerFromSpel(CapturedOutput output) throws Throwable {
+    methodAnnotationService.useLoggerFromSpel();
+    assertThat(output).contains("name | useLoggerFromSpel | OK | "," | []");
   }
 
   @Test
@@ -112,13 +131,16 @@ class LogMethodAspectTest {
     assertThrows(
         IllegalArgumentException.class,
         () ->
-            testService.throwException(new User("username", "password", "email", Role.ROLE_USER)));
+            methodAnnotationService.throwException(
+                new User("username", "password", "email", Role.ROLE_USER)));
     verify(log)
         .warn(
-            eq("{}.{} | {} | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | {}({}) | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("throwException"),
             eq("IllegalArgumentException"),
+            anyString(),
             anyLong(),
             anyString());
   }
@@ -126,12 +148,14 @@ class LogMethodAspectTest {
   @Test
   @Disabled
   void throwAndLogException() throws Throwable {
-    assertThrows(RuntimeException.class, () -> testService.throwAndLogException());
+    assertThrows(RuntimeException.class, () -> methodAnnotationService.throwAndLogException());
     verify(log)
         .warn(
-            eq("{}.{} | {} | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | {}({}) | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("throwAndLogException"),
+            anyString(),
             anyLong(),
             anyString(),
             any(Exception.class));
@@ -142,14 +166,16 @@ class LogMethodAspectTest {
     assertThrows(
         IllegalArgumentException.class,
         () ->
-            testService.throwAndExcludeException(
+            methodAnnotationService.throwAndExcludeException(
                 new User("username", "password", "email", Role.ROLE_USER)));
     verify(log)
         .warn(
-            eq("{}.{} | {} | {}ms | {}"),
-            eq("TestService"),
+            eq("{} | {}{} | {}({}) | {}ms | {}"),
+            eq("name"),
+            eq(""),
             eq("throwAndExcludeException"),
             eq("IllegalArgumentException"),
+            anyString(),
             anyLong(),
             anyString());
   }

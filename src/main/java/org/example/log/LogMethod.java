@@ -5,7 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD,ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LogMethod {
   String[] exclude() default "";
@@ -13,4 +13,5 @@ public @interface LogMethod {
   String[] excludeExceptions() default "";
   String logName() default "";
   String printer() default "";
+  String prefix() default "";
 }

@@ -1,8 +1,6 @@
 package org.example.log;
 
-import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -13,12 +11,14 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
 public class LogMethodAspect {
-  private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+  private ExpressionParser expressionParser = new SpelExpressionParser();
 
   @Pointcut("@annotation(org.example.log.LogMethod)")
   public void logMethod() {}
@@ -39,87 +39,112 @@ public class LogMethodAspect {
 
   private void logExecution(JoinPoint joinPoint, LogMethod logMethod, long startTime, Throwable e)
       throws ReflectiveOperationException {
+    logMethod = mergeLogMethods(joinPoint, logMethod);
     Logger log = getLog(joinPoint, logMethod);
-    String className = joinPoint.getTarget().getClass().getSimpleName();
     String methodName = joinPoint.getSignature().getName();
-    String parameters = getParameters(joinPoint, logMethod);
+    String parameterString = printParameters(joinPoint, logMethod);
     if (e == null) {
       log.info(
-          "{}.{} | OK | {}ms | {}",
-          className,
+          "{} | {}{} | OK | {}ms | {}",
+          "name",
+          logMethod.prefix(),
           methodName,
           System.currentTimeMillis() - startTime,
-          parameters);
+          parameterString);
     } else {
       if (logMethod.logStackTrace() && !skipException(logMethod, e)) {
         log.warn(
-            "{}.{} | {} | {}ms | {}",
-            className,
+            "{} | {}{} | {}({}) | {}ms | {}",
+            "name",
+            logMethod.prefix(),
             methodName,
             e.getClass().getSimpleName(),
+            e.getMessage(),
             System.currentTimeMillis() - startTime,
-            parameters,
+            parameterString,
             e);
       } else {
         log.warn(
-            "{}.{} | {} | {}ms | {}",
-            className,
+            "{} | {}{} | {}({}) | {}ms | {}",
+            "name",
+            logMethod.prefix(),
             methodName,
             e.getClass().getSimpleName(),
+            e.getMessage(),
             System.currentTimeMillis() - startTime,
-            parameters);
+            parameterString);
       }
     }
   }
 
   private boolean skipException(LogMethod logMethod, Throwable e) {
-    for (String exceptionName : logMethod.excludeExceptions()) {
-      if (e.getClass().getSimpleName().equals(exceptionName)) {
-        return true;
-      }
-    }
-    return false;
+    return Set.of(logMethod.excludeExceptions()).contains(e.getClass().getSimpleName());
   }
 
   private Logger getLog(JoinPoint joinPoint, LogMethod logMethod) {
-    String logName =
-        StringUtils.isNotEmpty(logMethod.logName())
-            ? logMethod.logName()
-            : joinPoint.getTarget().getClass().getCanonicalName();
-    return LogManager.getLogger(logName);
+    if (StringUtils.isEmpty(logMethod.logName())) {
+      return LogManager.getLogger(joinPoint.getTarget().getClass().getCanonicalName());
+    }
+    if (logMethod.logName().startsWith("#")) {
+      return getLogObject(joinPoint, logMethod);
+    }
+    return LogManager.getLogger(logMethod.logName());
   }
 
-  private String getParameters(JoinPoint joinPoint, LogMethod logMethod)
+  private Logger getLogObject(JoinPoint joinPoint, LogMethod logMethod) {
+    return expressionParser
+        .parseExpression(logMethod.logName())
+        .getValue(joinPoint.getTarget(), Logger.class);
+  }
+
+  private String printParameters(JoinPoint joinPoint, LogMethod logMethod)
       throws ReflectiveOperationException {
-    ParameterPrinter printer = null;
-    if (StringUtils.isNotEmpty(logMethod.printer())) {
-      printer =
-          (ParameterPrinter)
-              Class.forName(logMethod.printer()).getDeclaredConstructor().newInstance();
-    }
     String[] parameterNames = ((MethodSignature) joinPoint.getSignature()).getParameterNames();
     Object[] parameters = joinPoint.getArgs();
-    StringBuilder parameterString = new StringBuilder();
-    for (Object parameter : parameters) {
+    StringBuilder parameterString = new StringBuilder("[");
+    for (int i = 0; i < parameters.length; i++) {
       if (isLogged(parameterNames, logMethod.exclude())) {
-        parameterString.append(printParameter(parameter, printer)).append(", ");
+        parameterString
+            .append(parameterNames[i])
+            .append(": ")
+            .append(printParameter(parameters[i], getPrinter(logMethod)))
+            .append(", ");
       }
     }
-    return parameterString.toString();
+    return parameterString.append("]").toString();
+  }
+
+  private ParameterPrinter getPrinter(LogMethod logMethod) throws ReflectiveOperationException {
+    if (StringUtils.isNotEmpty(logMethod.printer())) {
+      return (ParameterPrinter)
+          Class.forName(logMethod.printer()).getDeclaredConstructor().newInstance();
+    }
+    return null;
   }
 
   private String printParameter(Object parameter, ParameterPrinter printer) {
+    if (parameter == null) {
+      return "null";
+    }
     if (printer != null) {
       return printer.print(parameter);
     }
-    if (parameter instanceof Date date) {
-      return DATE_FORMAT.format(date);
-    } else {
-      return parameter.toString();
-    }
+    return parameter.toString();
   }
 
   private boolean isLogged(String[] parameterNames, String[] skipArgs) {
     return Collections.disjoint(Set.of(parameterNames), Set.of(skipArgs));
+  }
+
+  private LogMethod mergeLogMethods(JoinPoint joinPoint, LogMethod logMethod) {
+    LogMethod classLogMethod =
+        (LogMethod)
+            ((MethodSignature) joinPoint.getSignature())
+                .getDeclaringType()
+                .getAnnotation(LogMethod.class);
+    if (classLogMethod == null) {
+      return logMethod;
+    }
+    return new LogMethodMapper(classLogMethod, logMethod);
   }
 }

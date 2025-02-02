@@ -19,6 +19,11 @@
   </properties>
   <dependencies>
     <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-expression</artifactId>
+      <version>7.0.0-M1</version>
+    </dependency>
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
     </dependency>
@@ -27,15 +32,15 @@
       <artifactId>spring-boot-starter-log4j2</artifactId>
     </dependency>
     <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-aop</artifactId>
-        <exclusions>
-          <exclusion>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-logging</artifactId>
-          </exclusion>
-        </exclusions>
-    </dependency>    
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
@@ -78,79 +83,79 @@
       </plugin>
     </plugins>
   </build>
-    <profiles>
+  <profiles>
     <profile>
-    <id>aspectj</id>
-    <dependencies>
-    <dependency>
-      <groupId>org.aspectj</groupId>
-      <artifactId>aspectjrt</artifactId>
-      <version>1.9.20.1</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.aspectj</groupId>
-      <artifactId>aspectjweaver</artifactId>
-      <version>1.9.20.1</version>
-    </dependency>
-    </dependencies>
-    <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>aspectj-maven-plugin</artifactId>
-        <version>1.15.0</version>
-        <configuration>
-          <complianceLevel>16</complianceLevel>
-          <source>16</source>
-          <target>16</target>
-          <showWeaveInfo>true</showWeaveInfo>
-          <verbose>true</verbose>
-          <Xlint>ignore</Xlint>
-          <forceAjcCompile>true</forceAjcCompile>
-          <sources />
-          <encoding>UTF-8</encoding>
-          <excludes>
-            <exclude>**/*.java</exclude>
-          </excludes>
-          <aspectLibraries>
-            <aspectLibrary>
-              <groupId>org.aspectj</groupId>
-              <artifactId>aspectjweaver</artifactId>
-            </aspectLibrary>
-          </aspectLibraries>
-        </configuration>
-        <executions>
-          <execution>
-            <id>default-compile</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
+      <id>aspectj</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.aspectj</groupId>
+          <artifactId>aspectjrt</artifactId>
+          <version>1.9.20.1</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.aspectj</groupId>
+          <artifactId>aspectjweaver</artifactId>
+          <version>1.9.20.1</version>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>aspectj-maven-plugin</artifactId>
+            <version>1.15.0</version>
             <configuration>
-              <weaveDirectories>
-                <weaveDirectory>${project.build.outputDirectory}</weaveDirectory>
-              </weaveDirectories>
+              <complianceLevel>16</complianceLevel>
+              <source>16</source>
+              <target>16</target>
+              <showWeaveInfo>true</showWeaveInfo>
+              <verbose>true</verbose>
+              <Xlint>ignore</Xlint>
+              <forceAjcCompile>true</forceAjcCompile>
+              <sources />
+              <encoding>UTF-8</encoding>
+              <excludes>
+                <exclude>**/*.java</exclude>
+              </excludes>
+              <aspectLibraries>
+                <aspectLibrary>
+                  <groupId>org.aspectj</groupId>
+                  <artifactId>aspectjweaver</artifactId>
+                </aspectLibrary>
+              </aspectLibraries>
             </configuration>
-          </execution>
-          <execution>
-            <id>default-testCompile</id>
-            <phase>process-test-classes</phase>
-            <goals>
-              <goal>test-compile</goal>
-            </goals>
-            <configuration>
-              <weaveDirectories>
-                <weaveDirectory>${project.build.testOutputDirectory}</weaveDirectory>
-              </weaveDirectories>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-    </build>
+            <executions>
+              <execution>
+                <id>default-compile</id>
+                <phase>process-classes</phase>
+                <goals>
+                  <goal>compile</goal>
+                </goals>
+                <configuration>
+                  <weaveDirectories>
+                    <weaveDirectory>${project.build.outputDirectory}</weaveDirectory>
+                  </weaveDirectories>
+                </configuration>
+              </execution>
+              <execution>
+                <id>default-testCompile</id>
+                <phase>process-test-classes</phase>
+                <goals>
+                  <goal>test-compile</goal>
+                </goals>
+                <configuration>
+                  <weaveDirectories>
+                    <weaveDirectory>${project.build.testOutputDirectory}</weaveDirectory>
+                  </weaveDirectories>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
-    </profiles>
+  </profiles>
   <dependencyManagement>
     <dependencies>
       <dependency>
