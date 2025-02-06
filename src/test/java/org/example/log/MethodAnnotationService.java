@@ -31,6 +31,9 @@ public class MethodAnnotationService {
   public int returnPrimitive() {
     return 0;
   }
+  @LogMethod
+  public void logNullParameter(User user) {
+  }
 
   @LogMethod(logStackTrace = false)
   public User throwException(User user) {

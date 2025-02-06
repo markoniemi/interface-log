@@ -25,26 +25,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith({SpringExtension.class,OutputCaptureExtension.class})
 @Import(TestConfig.class)
+@WithMockUser(username = "user")
 class LogMethodAspectTest {
   @Autowired MethodAnnotationService methodAnnotationService;
   @Autowired ClassAnnotationService classAnnotationService;
-  @Spy Logger log = LogManager.getLogger("logSpy");
-  private MockedStatic<LogManager> logManager;
-
-  @BeforeEach
-  void setUp() {
-    logManager = Mockito.mockStatic(LogManager.class);
-    logManager.when(() -> LogManager.getLogger(anyString())).thenReturn(log);
-  }
-
-  @AfterEach
-  void tearDown() {
-    logManager.close();
-  }
 
   @Test
   void useDefaults(CapturedOutput output) {
@@ -53,71 +42,41 @@ class LogMethodAspectTest {
   }
 
   @Test
-  void excludeParameter() throws Throwable {
+  void excludeParameter(CapturedOutput output) throws Throwable {
     methodAnnotationService.excludeParameter(
         new User("username", "password", "email", Role.ROLE_USER));
-    verify(log)
-        .info(
-            eq("{} | {}{} | OK | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("excludeParameter"),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | excludeParameter | OK | "," | []");
   }
 
   @Test
-  void logParameterWithPrinter() throws Throwable {
+  void logParameterWithPrinter(CapturedOutput output) throws Throwable {
     methodAnnotationService.logParameterWithPrinter(
         new User("username", "password", "email", Role.ROLE_USER));
-    verify(log)
-        .info(
-            eq("{} | {}{} | OK | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("logParameterWithPrinter"),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | logParameterWithPrinter | OK | "," | [user: username: username, ]");
   }
 
   @Test
-  void returnPrimitive() throws Throwable {
+  void returnPrimitive(CapturedOutput output) throws Throwable {
     methodAnnotationService.returnPrimitive();
-    verify(log)
-        .info(
-            eq("{} | {}{} | OK | {}ms | {}"),
-            eq("name"),
-            eq("v1/"),
-            eq("returnPrimitive"),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | v1/returnPrimitive | OK | "," | []");
+  }
+  @Test
+  void logNullParameter(CapturedOutput output) throws Throwable {
+    methodAnnotationService.logNullParameter(null);
+    assertThat(output).contains("name | logNullParameter | OK | "," | [user: null, ]");
   }
 
   @Test
-  void useDifferentParameters() throws Throwable {
+  void useDifferentParameters(CapturedOutput output) throws Throwable {
     methodAnnotationService.useDifferentParameters(
         new User("username", "password", "email", Role.ROLE_USER), "string", new Date(), false);
-    verify(log)
-        .info(
-            eq("{} | {}{} | OK | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("useDifferentParameters"),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | useDifferentParameters | OK | "," | [user: User(id=null");
   }
 
   @Test
-  void useDifferentLogger() throws Throwable {
+  void useDifferentLogger(CapturedOutput output) throws Throwable {
     methodAnnotationService.useDifferentLogger();
-    verify(log)
-        .info(
-            eq("{} | {}{} | OK | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("useDifferentLogger"),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | useDifferentLogger | OK | "," | []");
   }
 
   @Test
@@ -127,56 +86,40 @@ class LogMethodAspectTest {
   }
 
   @Test
-  void throwException() throws Throwable {
+  void throwException(CapturedOutput output) throws Throwable {
     assertThrows(
         IllegalArgumentException.class,
         () ->
             methodAnnotationService.throwException(
                 new User("username", "password", "email", Role.ROLE_USER)));
-    verify(log)
-        .warn(
-            eq("{} | {}{} | {}({}) | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("throwException"),
-            eq("IllegalArgumentException"),
-            anyString(),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | throwException | IllegalArgumentException(update fails) | "," | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
   }
 
   @Test
   @Disabled
-  void throwAndLogException() throws Throwable {
+  void throwAndLogException(CapturedOutput output) throws Throwable {
     assertThrows(RuntimeException.class, () -> methodAnnotationService.throwAndLogException());
-    verify(log)
-        .warn(
-            eq("{} | {}{} | {}({}) | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("throwAndLogException"),
-            anyString(),
-            anyLong(),
-            anyString(),
-            any(Exception.class));
+    assertThat(output).contains("name | useDifferentParameters | OK | "," | []");
   }
 
   @Test
-  void throwAndExcludeException() throws Throwable {
+  void throwAndExcludeException(CapturedOutput output) throws Throwable {
     assertThrows(
         IllegalArgumentException.class,
         () ->
             methodAnnotationService.throwAndExcludeException(
                 new User("username", "password", "email", Role.ROLE_USER)));
-    verify(log)
-        .warn(
-            eq("{} | {}{} | {}({}) | {}ms | {}"),
-            eq("name"),
-            eq(""),
-            eq("throwAndExcludeException"),
-            eq("IllegalArgumentException"),
-            anyString(),
-            anyLong(),
-            anyString());
+    assertThat(output).contains("name | throwAndExcludeException | IllegalArgumentException(update fails) | "," | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
+  }
+  
+  @Test
+  void useClassLevelAnnotation(CapturedOutput output) {
+    classAnnotationService.useClassLevelAnnotation(new User("username", "password", "email", Role.ROLE_USER));
+    assertThat(output).contains("interface log", "name | v1/useClassLevelAnnotation | OK | "," | [user: username: username, ]");
+  }
+  @Test
+  void overrideLogName(CapturedOutput output) {
+    classAnnotationService.overrideLogName();
+    assertThat(output).contains("interface log", "name | v1/overrideLogName | OK | "," | []");
   }
 }

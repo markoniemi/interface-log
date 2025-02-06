@@ -5,21 +5,23 @@ import lombok.extern.log4j.Log4j2;
 
 @Service
 @Log4j2
-@LogMethod(prefix = "v1/",logStackTrace = false)
+@LogMethod(prefix = "v1/", logStackTrace = true, logName="interface log", printer = "org.example.log.UserPrinter")
 public class ClassAnnotationService {
   @LogMethod
-  public User[] returnList() {
-    User[] users = {new User("username", "password", "email", Role.ROLE_USER)};
-    return users;
+  public void useClassLevelAnnotation(User user) {
+    log.debug("useClassLevelAnnotation");
   }
 
-  @LogMethod(logStackTrace = true)
-  public void overrideLogStackTrace() {
-    log.debug("returnClass");
+  @LogMethod(logStackTrace = false)
+  public void overrideLogName() {
+    log.debug("overrideLogName");
   }
-  @LogMethod(exclude = "user")
-  public User excludeParameter(User user) {
-    log.debug("returnClass");
-    return null;
+  @LogMethod(logStackTrace = false)
+  public void overrideLogStackTrace() {
+    throw new IllegalArgumentException("update fails");
+  }
+  @LogMethod
+  public void useClassLevelPrinter() {
+    log.debug("useClassLevelPrinter");
   }
 }

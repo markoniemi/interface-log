@@ -5,6 +5,9 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+import org.apache.logging.log4j.message.Message;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -13,6 +16,7 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -39,38 +43,46 @@ public class LogMethodAspect {
 
   private void logExecution(JoinPoint joinPoint, LogMethod logMethod, long startTime, Throwable e)
       throws ReflectiveOperationException {
-    logMethod = mergeLogMethods(joinPoint, logMethod);
+    String user = SecurityContextHolder.getContext().getAuthentication().getName();
+    logMethod = mergeAnnotations(joinPoint, logMethod);
     Logger log = getLog(joinPoint, logMethod);
     String methodName = joinPoint.getSignature().getName();
     String parameterString = printParameters(joinPoint, logMethod);
+    final String successTemplate="{}{} | {} | {} | {} | {}ms | {}";
+    final String errorTemplate="{}{} | {}({}) | {} | {} | {}ms | {}";
+    String result=e==null?"OK":"FAIL";
     if (e == null) {
       log.info(
-          "{} | {}{} | OK | {}ms | {}",
-          "name",
+          successTemplate,
           logMethod.prefix(),
           methodName,
+          result,
+          "applicationName",
+          user,
           System.currentTimeMillis() - startTime,
           parameterString);
     } else {
       if (logMethod.logStackTrace() && !skipException(logMethod, e)) {
         log.warn(
-            "{} | {}{} | {}({}) | {}ms | {}",
-            "name",
+            errorTemplate,
             logMethod.prefix(),
             methodName,
+            result,
             e.getClass().getSimpleName(),
-            e.getMessage(),
+            "applicationName",
+            user,
             System.currentTimeMillis() - startTime,
             parameterString,
             e);
       } else {
         log.warn(
-            "{} | {}{} | {}({}) | {}ms | {}",
-            "name",
+            errorTemplate,
             logMethod.prefix(),
             methodName,
+            result,
             e.getClass().getSimpleName(),
-            e.getMessage(),
+            "applicationName",
+            user,
             System.currentTimeMillis() - startTime,
             parameterString);
       }
@@ -136,7 +148,7 @@ public class LogMethodAspect {
     return Collections.disjoint(Set.of(parameterNames), Set.of(skipArgs));
   }
 
-  private LogMethod mergeLogMethods(JoinPoint joinPoint, LogMethod logMethod) {
+  private LogMethod mergeAnnotations(JoinPoint joinPoint, LogMethod logMethod) {
     LogMethod classLogMethod =
         (LogMethod)
             ((MethodSignature) joinPoint.getSignature())
