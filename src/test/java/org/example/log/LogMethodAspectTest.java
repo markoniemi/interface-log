@@ -1,26 +1,13 @@
 package org.example.log;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
+
 import java.util.Date;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -28,7 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith({SpringExtension.class,OutputCaptureExtension.class})
+@ExtendWith({SpringExtension.class, OutputCaptureExtension.class})
 @Import(TestConfig.class)
 @WithMockUser(username = "user")
 class LogMethodAspectTest {
@@ -38,51 +25,58 @@ class LogMethodAspectTest {
   @Test
   void useDefaults(CapturedOutput output) {
     assertNotNull(methodAnnotationService.useDefaults());
-    assertThat(output).contains("name | useDefaults | OK | "," | []");
+    assertThat(output).contains("useDefaults | OK | applicationName | user | ", " | []");
   }
 
   @Test
   void excludeParameter(CapturedOutput output) throws Throwable {
     methodAnnotationService.excludeParameter(
         new User("username", "password", "email", Role.ROLE_USER));
-    assertThat(output).contains("name | excludeParameter | OK | "," | []");
+    assertThat(output).contains("excludeParameter | OK | applicationName | user | ", " | []");
   }
 
   @Test
   void logParameterWithPrinter(CapturedOutput output) throws Throwable {
     methodAnnotationService.logParameterWithPrinter(
         new User("username", "password", "email", Role.ROLE_USER));
-    assertThat(output).contains("name | logParameterWithPrinter | OK | "," | [user: username: username, ]");
+    assertThat(output)
+        .contains(
+            "logParameterWithPrinter | OK | applicationName | user | ",
+            " | [user: username: username, ]");
   }
 
   @Test
   void returnPrimitive(CapturedOutput output) throws Throwable {
     methodAnnotationService.returnPrimitive();
-    assertThat(output).contains("name | v1/returnPrimitive | OK | "," | []");
+    assertThat(output).contains("v1/returnPrimitive | OK | applicationName | user | ", " | []");
   }
+
   @Test
   void logNullParameter(CapturedOutput output) throws Throwable {
     methodAnnotationService.logNullParameter(null);
-    assertThat(output).contains("name | logNullParameter | OK | "," | [user: null, ]");
+    assertThat(output)
+        .contains("logNullParameter | OK | applicationName | user | ", " | [user: null, ]");
   }
 
   @Test
   void useDifferentParameters(CapturedOutput output) throws Throwable {
     methodAnnotationService.useDifferentParameters(
         new User("username", "password", "email", Role.ROLE_USER), "string", new Date(), false);
-    assertThat(output).contains("name | useDifferentParameters | OK | "," | [user: User(id=null");
+    assertThat(output)
+        .contains(
+            "useDifferentParameters | OK | applicationName | user | ", " | [user: User(id=null");
   }
 
   @Test
   void useDifferentLogger(CapturedOutput output) throws Throwable {
     methodAnnotationService.useDifferentLogger();
-    assertThat(output).contains("name | useDifferentLogger | OK | "," | []");
+    assertThat(output).contains("useDifferentLogger | OK | applicationName | user | ", " | []");
   }
 
   @Test
   void useLoggerFromSpel(CapturedOutput output) throws Throwable {
     methodAnnotationService.useLoggerFromSpel();
-    assertThat(output).contains("name | useLoggerFromSpel | OK | "," | []");
+    assertThat(output).contains("useLoggerFromSpel | OK | applicationName | user | ", " | []");
   }
 
   @Test
@@ -92,14 +86,17 @@ class LogMethodAspectTest {
         () ->
             methodAnnotationService.throwException(
                 new User("username", "password", "email", Role.ROLE_USER)));
-    assertThat(output).contains("name | throwException | IllegalArgumentException(update fails) | "," | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
+    assertThat(output)
+        .contains(
+            "throwException | FAIL(IllegalArgumentException) | applicationName | user | ",
+            " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
   }
 
   @Test
   @Disabled
   void throwAndLogException(CapturedOutput output) throws Throwable {
     assertThrows(RuntimeException.class, () -> methodAnnotationService.throwAndLogException());
-    assertThat(output).contains("name | useDifferentParameters | OK | "," | []");
+    assertThat(output).contains("name | useDifferentParameters | OK | ", " | []");
   }
 
   @Test
@@ -109,17 +106,26 @@ class LogMethodAspectTest {
         () ->
             methodAnnotationService.throwAndExcludeException(
                 new User("username", "password", "email", Role.ROLE_USER)));
-    assertThat(output).contains("name | throwAndExcludeException | IllegalArgumentException(update fails) | "," | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
+    assertThat(output)
+        .contains(
+            "throwAndExcludeException | FAIL(IllegalArgumentException) | applicationName | user | ",
+            " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
   }
-  
+
   @Test
   void useClassLevelAnnotation(CapturedOutput output) {
-    classAnnotationService.useClassLevelAnnotation(new User("username", "password", "email", Role.ROLE_USER));
-    assertThat(output).contains("interface log", "name | v1/useClassLevelAnnotation | OK | "," | [user: username: username, ]");
+    classAnnotationService.useClassLevelAnnotation(
+        new User("username", "password", "email", Role.ROLE_USER));
+    assertThat(output)
+        .contains(
+            "interface log",
+            "v1/useClassLevelAnnotation | OK | applicationName | user | ",
+            " | [user: username: username, ]");
   }
+
   @Test
   void overrideLogName(CapturedOutput output) {
     classAnnotationService.overrideLogName();
-    assertThat(output).contains("interface log", "name | v1/overrideLogName | OK | "," | []");
+    assertThat(output).contains("v1/overrideLogName | OK | applicationName | user | ", " | []");
   }
 }
