@@ -46,7 +46,7 @@ public class LogMethodAspect {
             logMethod.prefix(),
             joinPoint.getSignature().getName(),
             getResult(e),
-            "applicationName",
+            getApplicationName(),
             SecurityContextHolder.getContext().getAuthentication().getName(),
             System.currentTimeMillis() - startTime,
             printParameters(joinPoint, logMethod));
@@ -65,6 +65,10 @@ public class LogMethodAspect {
 
   private String getResult(Throwable e) {
     return e == null ? "OK" : "FAIL(" + e.getClass().getSimpleName() + ")";
+  }
+
+  private String getApplicationName() {
+    return "applicationName";
   }
 
   private boolean skipException(LogMethod logMethod, Throwable e) {
