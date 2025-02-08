@@ -12,16 +12,12 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
 public class LogMethodAspect {
-  private ExpressionParser expressionParser = new SpelExpressionParser();
-
   @Pointcut("@annotation(org.example.log.LogMethod)")
   public void logMethod() {}
 
@@ -56,6 +52,13 @@ public class LogMethodAspect {
             printParameters(joinPoint, logMethod));
   }
 
+  private Logger getLog(JoinPoint joinPoint, LogMethod logMethod) {
+    if (StringUtils.isEmpty(logMethod.logName())) {
+      return LoggerFactory.getLogger(joinPoint.getTarget().getClass().getCanonicalName());
+    }
+    return LoggerFactory.getLogger(logMethod.logName());
+  }
+
   private Throwable printStackTrace(LogMethod logMethod, Throwable e) {
     return e != null && (!logMethod.logStackTrace() || skipException(logMethod, e)) ? null : e;
   }
@@ -66,13 +69,6 @@ public class LogMethodAspect {
 
   private boolean skipException(LogMethod logMethod, Throwable e) {
     return Set.of(logMethod.excludeExceptions()).contains(e.getClass().getSimpleName());
-  }
-
-  private Logger getLog(JoinPoint joinPoint, LogMethod logMethod) {
-    if (StringUtils.isEmpty(logMethod.logName())) {
-      return LoggerFactory.getLogger(joinPoint.getTarget().getClass().getCanonicalName());
-    }
-    return LoggerFactory.getLogger(logMethod.logName());
   }
 
   private String printParameters(JoinPoint joinPoint, LogMethod logMethod)
@@ -104,10 +100,7 @@ public class LogMethodAspect {
     if (parameter == null) {
       return "null";
     }
-    if (printer != null) {
-      return printer.print(parameter);
-    }
-    return parameter.toString();
+    return printer != null ? printer.print(parameter) : parameter.toString();
   }
 
   private boolean isLogged(String[] parameterNames, String[] skipArgs) {
