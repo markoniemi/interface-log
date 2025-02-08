@@ -3,17 +3,15 @@ package org.example.log;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.FormattedMessage;
-import org.apache.logging.log4j.message.Message;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,50 +41,27 @@ public class LogMethodAspect {
 
   private void logExecution(JoinPoint joinPoint, LogMethod logMethod, long startTime, Throwable e)
       throws ReflectiveOperationException {
-    String user = SecurityContextHolder.getContext().getAuthentication().getName();
     logMethod = mergeAnnotations(joinPoint, logMethod);
-    Logger log = getLog(joinPoint, logMethod);
-    String methodName = joinPoint.getSignature().getName();
-    String parameterString = printParameters(joinPoint, logMethod);
-    final String successTemplate="{}{} | {} | {} | {} | {}ms | {}";
-    final String errorTemplate="{}{} | {}({}) | {} | {} | {}ms | {}";
-    String result=e==null?"OK":"FAIL";
-    if (e == null) {
-      log.info(
-          successTemplate,
-          logMethod.prefix(),
-          methodName,
-          result,
-          "applicationName",
-          user,
-          System.currentTimeMillis() - startTime,
-          parameterString);
-    } else {
-      if (logMethod.logStackTrace() && !skipException(logMethod, e)) {
-        log.warn(
-            errorTemplate,
+    getLog(joinPoint, logMethod)
+        .atLevel(e == null ? Level.INFO : Level.WARN)
+        .setCause(printStackTrace(logMethod, e))
+        .log(
+            "{}{} | {} | {} | {} | {}ms | {}",
             logMethod.prefix(),
-            methodName,
-            result,
-            e.getClass().getSimpleName(),
+            joinPoint.getSignature().getName(),
+            getResult(e),
             "applicationName",
-            user,
+            SecurityContextHolder.getContext().getAuthentication().getName(),
             System.currentTimeMillis() - startTime,
-            parameterString,
-            e);
-      } else {
-        log.warn(
-            errorTemplate,
-            logMethod.prefix(),
-            methodName,
-            result,
-            e.getClass().getSimpleName(),
-            "applicationName",
-            user,
-            System.currentTimeMillis() - startTime,
-            parameterString);
-      }
-    }
+            printParameters(joinPoint, logMethod));
+  }
+
+  private Throwable printStackTrace(LogMethod logMethod, Throwable e) {
+    return e != null && (!logMethod.logStackTrace() || skipException(logMethod, e)) ? null : e;
+  }
+
+  private String getResult(Throwable e) {
+    return e == null ? "OK" : "FAIL(" + e.getClass().getSimpleName() + ")";
   }
 
   private boolean skipException(LogMethod logMethod, Throwable e) {
@@ -95,18 +70,9 @@ public class LogMethodAspect {
 
   private Logger getLog(JoinPoint joinPoint, LogMethod logMethod) {
     if (StringUtils.isEmpty(logMethod.logName())) {
-      return LogManager.getLogger(joinPoint.getTarget().getClass().getCanonicalName());
+      return LoggerFactory.getLogger(joinPoint.getTarget().getClass().getCanonicalName());
     }
-    if (logMethod.logName().startsWith("#")) {
-      return getLogObject(joinPoint, logMethod);
-    }
-    return LogManager.getLogger(logMethod.logName());
-  }
-
-  private Logger getLogObject(JoinPoint joinPoint, LogMethod logMethod) {
-    return expressionParser
-        .parseExpression(logMethod.logName())
-        .getValue(joinPoint.getTarget(), Logger.class);
+    return LoggerFactory.getLogger(logMethod.logName());
   }
 
   private String printParameters(JoinPoint joinPoint, LogMethod logMethod)

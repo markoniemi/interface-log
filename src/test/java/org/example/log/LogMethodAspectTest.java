@@ -74,12 +74,6 @@ class LogMethodAspectTest {
   }
 
   @Test
-  void useLoggerFromSpel(CapturedOutput output) throws Throwable {
-    methodAnnotationService.useLoggerFromSpel();
-    assertThat(output).contains("useLoggerFromSpel | OK | applicationName | user | ", " | []");
-  }
-
-  @Test
   void throwException(CapturedOutput output) throws Throwable {
     assertThrows(
         IllegalArgumentException.class,
