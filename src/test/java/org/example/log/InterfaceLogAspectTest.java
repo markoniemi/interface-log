@@ -3,7 +3,6 @@ package org.example.log;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import java.util.Date;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -68,9 +67,9 @@ class InterfaceLogAspectTest {
   }
 
   @Test
-  void useDifferentLogger(CapturedOutput output) throws Throwable {
-    methodAnnotationService.useDifferentLogger();
-    assertThat(output).contains("useDifferentLogger | OK | applicationName | user | ", " | []");
+  void auditLog(CapturedOutput output) throws Throwable {
+    methodAnnotationService.auditLog();
+    assertThat(output).contains("audit", "auditLog | OK | applicationName | user | ", " | []");
   }
 
   @Test
@@ -112,14 +111,8 @@ class InterfaceLogAspectTest {
         new User("username", "password", "email", Role.ROLE_USER));
     assertThat(output)
         .contains(
-            "interface log",
+            "interface",
             "v1/useClassLevelAnnotation | OK | applicationName | user | ",
             " | [user: username: username, ]");
-  }
-
-  @Test
-  void overrideLogName(CapturedOutput output) {
-    classAnnotationService.overrideLogName();
-    assertThat(output).contains("v1/overrideLogName | OK | applicationName | user | ", " | []");
   }
 }

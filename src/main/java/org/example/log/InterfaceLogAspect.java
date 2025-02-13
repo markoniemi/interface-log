@@ -22,7 +22,8 @@ public class InterfaceLogAspect {
   public void interfaceLog() {}
 
   @Around(value = "@annotation(interfaceLog)", argNames = "interfaceLog")
-  public Object adviceAround(ProceedingJoinPoint joinPoint, InterfaceLog interfaceLog) throws Throwable {
+  public Object adviceAround(ProceedingJoinPoint joinPoint, InterfaceLog interfaceLog)
+      throws Throwable {
     long startTime = System.currentTimeMillis();
     Object result = null;
     try {
@@ -35,32 +36,52 @@ public class InterfaceLogAspect {
     return result;
   }
 
-  private void logExecution(JoinPoint joinPoint, InterfaceLog interfaceLog, long startTime, Throwable e)
+  private void logExecution(
+      JoinPoint joinPoint, InterfaceLog interfaceLog, long startTime, Throwable e)
       throws ReflectiveOperationException {
     interfaceLog = mergeAnnotations(joinPoint, interfaceLog);
-    getLog(joinPoint, interfaceLog)
-        .atLevel(e == null ? Level.INFO : Level.WARN)
-        .setCause(printStackTrace(interfaceLog, e))
-        .log(
-            "{}{} | {} | {} | {} | {}ms | {}",
-            interfaceLog.prefix(),
-            joinPoint.getSignature().getName(),
-            getResult(e),
-            getApplicationName(),
-            SecurityContextHolder.getContext().getAuthentication().getName(),
-            System.currentTimeMillis() - startTime,
-            printParameters(joinPoint, interfaceLog));
+    log(
+        e == null ? Level.INFO : Level.WARN,
+        getException(interfaceLog, e),
+        "{}{} | {} | {} | {} | {}ms | {}",
+        interfaceLog.prefix(),
+        joinPoint.getSignature().getName(),
+        getResult(e),
+        getApplicationName(),
+        SecurityContextHolder.getContext().getAuthentication().getName(),
+        System.currentTimeMillis() - startTime,
+        printParameters(joinPoint, interfaceLog),
+        interfaceLog.auditLog());
   }
 
-  private Logger getLog(JoinPoint joinPoint, InterfaceLog interfaceLog) {
-    if (StringUtils.isEmpty(interfaceLog.logName())) {
-      return LoggerFactory.getLogger(joinPoint.getTarget().getClass().getCanonicalName());
+  private void log(
+      Level level,
+      Throwable cause,
+      String template,
+      String prefix,
+      String method,
+      String result,
+      String application,
+      String user,
+      Long time,
+      String parameters,
+      boolean auditLog) {
+    LoggerFactory.getLogger("interface")
+        .atLevel(level)
+        .setCause(cause)
+        .log(template, prefix, method, result, application, user, time, parameters);
+    if (auditLog) {
+      LoggerFactory.getLogger("audit")
+      .atLevel(level)
+      .setCause(cause)
+      .log(template, prefix, method, result, application, user, time, parameters);
     }
-    return LoggerFactory.getLogger(interfaceLog.logName());
   }
 
-  private Throwable printStackTrace(InterfaceLog interfaceLog, Throwable e) {
-    return e != null && (!interfaceLog.logStackTrace() || skipException(interfaceLog, e)) ? null : e;
+  private Throwable getException(InterfaceLog interfaceLog, Throwable e) {
+    return e != null && (!interfaceLog.logStackTrace() || skipException(interfaceLog, e))
+        ? null
+        : e;
   }
 
   private String getResult(Throwable e) {
@@ -92,7 +113,8 @@ public class InterfaceLogAspect {
     return parameterString.append("]").toString();
   }
 
-  private ParameterPrinter getPrinter(InterfaceLog interfaceLog) throws ReflectiveOperationException {
+  private ParameterPrinter getPrinter(InterfaceLog interfaceLog)
+      throws ReflectiveOperationException {
     if (StringUtils.isNotEmpty(interfaceLog.printer())) {
       return (ParameterPrinter)
           Class.forName(interfaceLog.printer()).getDeclaredConstructor().newInstance();

@@ -11,7 +11,7 @@ public @interface InterfaceLog {
   String[] exclude() default "";
   boolean logStackTrace() default true;
   String[] excludeExceptions() default "";
-  String logName() default "";
   String printer() default "";
   String prefix() default "";
+  boolean auditLog() default false;
 }

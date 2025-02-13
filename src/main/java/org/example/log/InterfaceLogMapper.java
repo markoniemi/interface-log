@@ -36,12 +36,9 @@ public class InterfaceLogMapper implements InterfaceLog {
   public boolean logStackTrace() {
     return !methodAnnotation.logStackTrace() ? methodAnnotation.logStackTrace() : classAnnotation.logStackTrace();
   }
-
   @Override
-  public String logName() {
-    return StringUtils.isNotEmpty(methodAnnotation.logName())
-        ? methodAnnotation.logName()
-        : classAnnotation.logName();
+  public boolean auditLog() {
+    return !methodAnnotation.auditLog() ? methodAnnotation.auditLog() : classAnnotation.auditLog();
   }
 
   @Override
