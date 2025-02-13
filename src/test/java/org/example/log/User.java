@@ -17,13 +17,9 @@ import lombok.ToString;
 @EqualsAndHashCode(of = "username")
 @Builder
 public class User {
-    private Long id;
-    @NonNull
-    private String username;
-    @NonNull
-    private String password;
-    @NonNull
-    private String email;
-    @NonNull
-    private Role role;
+  private Long id;
+  @NonNull private String username;
+  @NonNull private String password;
+  @NonNull private String email;
+  @NonNull private Role role;
 }

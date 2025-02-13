@@ -69,6 +69,7 @@ class InterfaceLogAspectTest {
   @Test
   void auditLog(CapturedOutput output) throws Throwable {
     methodAnnotationService.auditLog();
+    assertThat(output).contains("interface", "auditLog | OK | applicationName | user | ", " | []");
     assertThat(output).contains("audit", "auditLog | OK | applicationName | user | ", " | []");
   }
 

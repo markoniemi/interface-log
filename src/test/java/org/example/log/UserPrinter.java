@@ -1,6 +1,6 @@
 package org.example.log;
 
-public class UserPrinter implements ParameterPrinter{
+public class UserPrinter implements ParameterPrinter {
 
   @Override
   public String print(Object target) {

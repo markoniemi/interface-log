@@ -1,10 +1,7 @@
 package org.example.log;
 
 import java.util.Date;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
-import lombok.extern.log4j.Log4j2;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -27,13 +24,13 @@ public class MethodAnnotationService {
     return;
   }
 
-  @InterfaceLog(prefix="v1/")
+  @InterfaceLog(prefix = "v1/")
   public int returnPrimitive() {
     return 0;
   }
+
   @InterfaceLog
-  public void logNullParameter(User user) {
-  }
+  public void logNullParameter(User user) {}
 
   @InterfaceLog(logStackTrace = false)
   public User throwException(User user) {

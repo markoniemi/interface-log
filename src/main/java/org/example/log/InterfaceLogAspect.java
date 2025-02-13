@@ -9,7 +9,6 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -72,9 +71,9 @@ public class InterfaceLogAspect {
         .log(template, prefix, method, result, application, user, time, parameters);
     if (auditLog) {
       LoggerFactory.getLogger("audit")
-      .atLevel(level)
-      .setCause(cause)
-      .log(template, prefix, method, result, application, user, time, parameters);
+          .atLevel(level)
+          .setCause(cause)
+          .log(template, prefix, method, result, application, user, time, parameters);
     }
   }
 
@@ -136,9 +135,7 @@ public class InterfaceLogAspect {
   private InterfaceLog mergeAnnotations(JoinPoint joinPoint, InterfaceLog methodAnnotation) {
     InterfaceLog classAnnotation =
         (InterfaceLog)
-            ((MethodSignature) joinPoint.getSignature())
-                .getDeclaringType()
-                .getAnnotation(InterfaceLog.class);
+            joinPoint.getSignature().getDeclaringType().getAnnotation(InterfaceLog.class);
     if (classAnnotation == null) {
       return methodAnnotation;
     }
