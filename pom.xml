@@ -9,7 +9,7 @@
     <relativePath /> <!-- lookup parent from repository -->
   </parent>
   <groupId>org.example</groupId>
-  <artifactId>log-method</artifactId>
+  <artifactId>interface-log</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <properties>
     <java.version>17</java.version>
