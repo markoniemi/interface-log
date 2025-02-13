@@ -10,56 +10,56 @@ import lombok.extern.log4j.Log4j2;
 //@Log4j2
 public class MethodAnnotationService {
   public static Logger log = LogManager.getLogger(MethodAnnotationService.class);
-  @LogMethod
+  @InterfaceLog
   public User[] useDefaults() {
     User[] users = {new User("username", "password", "email", Role.ROLE_USER)};
     return users;
   }
 
-  @LogMethod(exclude = "user")
+  @InterfaceLog(exclude = "user")
   public User excludeParameter(User user) {
     log.debug("returnClass");
     return null;
   }
 
-  @LogMethod(printer = "org.example.log.UserPrinter")
+  @InterfaceLog(printer = "org.example.log.UserPrinter")
   public void logParameterWithPrinter(User user) {
     return;
   }
 
-  @LogMethod(prefix="v1/")
+  @InterfaceLog(prefix="v1/")
   public int returnPrimitive() {
     return 0;
   }
-  @LogMethod
+  @InterfaceLog
   public void logNullParameter(User user) {
   }
 
-  @LogMethod(logStackTrace = false)
+  @InterfaceLog(logStackTrace = false)
   public User throwException(User user) {
     throw new IllegalArgumentException("update fails");
   }
 
-  @LogMethod(excludeExceptions = {"IllegalArgumentException"})
+  @InterfaceLog(excludeExceptions = {"IllegalArgumentException"})
   public User throwAndExcludeException(User user) {
     throw new IllegalArgumentException("update fails");
   }
 
-  @LogMethod
+  @InterfaceLog
   public void throwAndLogException() {
     throw new RuntimeException("update fails");
   }
 
-  @LogMethod
+  @InterfaceLog
   public User useDifferentParameters(User user, String username, Date date, boolean bool) {
     return null;
   }
 
-  @LogMethod(logName = "org.example.api.user.TestServiceImpl")
+  @InterfaceLog(logName = "org.example.api.user.TestServiceImpl")
   public User useDifferentLogger() {
     return null;
   }
-  @LogMethod(logName = "#this.log")
+  @InterfaceLog(logName = "#this.log")
   public User useLoggerFromSpel( ) {
     return null;
   }

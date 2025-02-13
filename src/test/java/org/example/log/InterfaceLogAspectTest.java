@@ -18,7 +18,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith({SpringExtension.class, OutputCaptureExtension.class})
 @Import(TestConfig.class)
 @WithMockUser(username = "user")
-class LogMethodAspectTest {
+class InterfaceLogAspectTest {
   @Autowired MethodAnnotationService methodAnnotationService;
   @Autowired ClassAnnotationService classAnnotationService;
 

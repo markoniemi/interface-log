@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.METHOD,ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface LogMethod {
+public @interface InterfaceLog {
   String[] exclude() default "";
   boolean logStackTrace() default true;
   String[] excludeExceptions() default "";
