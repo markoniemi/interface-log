@@ -10,13 +10,7 @@ import java.lang.annotation.Target;
 public @interface InterfaceLog {
   String[] exclude() default "";
 
-  boolean logStackTrace() default true;
-
-  String[] excludeExceptions() default "";
-
-  String printer() default "";
+  boolean stackTrace() default false;
 
   String prefix() default "";
-
-  boolean auditLog() default false;
 }

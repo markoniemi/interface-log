@@ -1,24 +1,20 @@
 package org.example.log;
 
-import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-@InterfaceLog(prefix = "v1/", logStackTrace = true, printer = "org.example.log.UserPrinter")
+@InterfaceLog(prefix = "v1/", stackTrace = true)
 public class ClassAnnotationService {
   @InterfaceLog
-  public void useClassLevelAnnotation(User user) {
-    log.debug("useClassLevelAnnotation");
+  public void logExpectedException() throws IllegalArgumentException {
+    throw new IllegalArgumentException("expected exception");
   }
 
-  @InterfaceLog(logStackTrace = false)
-  public void overrideLogStackTrace() {
-    throw new IllegalArgumentException("update fails");
-  }
-
-  @InterfaceLog
-  public void useClassLevelPrinter() {
-    log.debug("useClassLevelPrinter");
+  @InterfaceLog(stackTrace = false)
+  public void logUnexpectedException() throws IllegalArgumentException {
+    log.debug("stackTrace disabled");
+    throw new NullPointerException("unexpected exception");
   }
 }

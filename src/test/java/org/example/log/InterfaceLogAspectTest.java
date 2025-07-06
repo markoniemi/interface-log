@@ -4,19 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Date;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith({SpringExtension.class, OutputCaptureExtension.class})
-@Import(TestConfig.class)
-@WithMockUser(username = "user")
+@ComponentScan(basePackageClasses = {MethodAnnotationService.class, ClassAnnotationService.class})
+@EnableAspectJAutoProxy
 class InterfaceLogAspectTest {
   @Autowired MethodAnnotationService methodAnnotationService;
   @Autowired ClassAnnotationService classAnnotationService;
@@ -24,53 +23,33 @@ class InterfaceLogAspectTest {
   @Test
   void useDefaults(CapturedOutput output) {
     assertNotNull(methodAnnotationService.useDefaults());
-    assertThat(output).contains("useDefaults | OK | applicationName | user | ", " | []");
+    assertThat(output).contains("useDefaults | OK | ", " | []");
   }
 
   @Test
-  void excludeParameter(CapturedOutput output) throws Throwable {
-    methodAnnotationService.excludeParameter(
-        new User("username", "password", "email", Role.ROLE_USER));
-    assertThat(output).contains("excludeParameter | OK | applicationName | user | ", " | []");
-  }
-
-  @Test
-  void logParameterWithPrinter(CapturedOutput output) throws Throwable {
-    methodAnnotationService.logParameterWithPrinter(
-        new User("username", "password", "email", Role.ROLE_USER));
-    assertThat(output)
-        .contains(
-            "logParameterWithPrinter | OK | applicationName | user | ",
-            " | [user: username: username, ]");
+  void skipParameters(CapturedOutput output) throws Throwable {
+    methodAnnotationService.skipParameters(
+        new User("username", "password", "email", Role.ROLE_USER), true);
+    assertThat(output).contains("skipParameters | OK | ", " | []");
   }
 
   @Test
   void returnPrimitive(CapturedOutput output) throws Throwable {
     methodAnnotationService.returnPrimitive();
-    assertThat(output).contains("v1/returnPrimitive | OK | applicationName | user | ", " | []");
+    assertThat(output).contains("v1/returnPrimitive | OK | ", " | []");
   }
 
   @Test
   void logNullParameter(CapturedOutput output) throws Throwable {
     methodAnnotationService.logNullParameter(null);
-    assertThat(output)
-        .contains("logNullParameter | OK | applicationName | user | ", " | [user: null, ]");
+    assertThat(output).contains("logNullParameter | OK | ", " | [user: null, ]");
   }
 
   @Test
   void useDifferentParameters(CapturedOutput output) throws Throwable {
     methodAnnotationService.useDifferentParameters(
         new User("username", "password", "email", Role.ROLE_USER), "string", new Date(), false);
-    assertThat(output)
-        .contains(
-            "useDifferentParameters | OK | applicationName | user | ", " | [user: User(id=null");
-  }
-
-  @Test
-  void auditLog(CapturedOutput output) throws Throwable {
-    methodAnnotationService.auditLog();
-    assertThat(output).contains("interface", "auditLog | OK | applicationName | user | ", " | []");
-    assertThat(output).contains("audit", "auditLog | OK | applicationName | user | ", " | []");
+    assertThat(output).contains("useDifferentParameters | OK | ", " | [user: User(id=null");
   }
 
   @Test
@@ -82,38 +61,28 @@ class InterfaceLogAspectTest {
                 new User("username", "password", "email", Role.ROLE_USER)));
     assertThat(output)
         .contains(
-            "throwException | FAIL(IllegalArgumentException) | applicationName | user | ",
-            " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
+            "throwException | FAIL | ",
+            " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ] | ",
+            "IllegalArgumentException(update fails)");
   }
 
   @Test
-  @Disabled
-  void throwAndLogException(CapturedOutput output) throws Throwable {
-    assertThrows(RuntimeException.class, () -> methodAnnotationService.throwAndLogException());
-    assertThat(output).contains("name | useDifferentParameters | OK | ", " | []");
-  }
-
-  @Test
-  void throwAndExcludeException(CapturedOutput output) throws Throwable {
+  void logExpectedException(CapturedOutput output) {
     assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            methodAnnotationService.throwAndExcludeException(
-                new User("username", "password", "email", Role.ROLE_USER)));
+        IllegalArgumentException.class, () -> classAnnotationService.logExpectedException());
     assertThat(output)
-        .contains(
-            "throwAndExcludeException | FAIL(IllegalArgumentException) | applicationName | user | ",
-            " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ]");
+        .contains("ClassAnnotationService", "INFO", "v1/logExpectedException | FAIL | ", " | []");
   }
 
   @Test
-  void useClassLevelAnnotation(CapturedOutput output) {
-    classAnnotationService.useClassLevelAnnotation(
-        new User("username", "password", "email", Role.ROLE_USER));
+  void logUnexpectedException(CapturedOutput output) {
+    assertThrows(NullPointerException.class, () -> classAnnotationService.logUnexpectedException());
     assertThat(output)
         .contains(
-            "interface",
-            "v1/useClassLevelAnnotation | OK | applicationName | user | ",
-            " | [user: username: username, ]");
+            "ClassAnnotationService",
+            "WARN",
+            "v1/logUnexpectedException | FAIL | ",
+            " | [] | ",
+            "NullPointerException(unexpected exception)");
   }
 }

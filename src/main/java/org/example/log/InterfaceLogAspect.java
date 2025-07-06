@@ -1,8 +1,8 @@
 package org.example.log;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -11,7 +11,6 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -24,15 +23,14 @@ public class InterfaceLogAspect {
   public Object adviceAround(ProceedingJoinPoint joinPoint, InterfaceLog interfaceLog)
       throws Throwable {
     long startTime = System.currentTimeMillis();
-    Object result = null;
     try {
-      result = joinPoint.proceed(joinPoint.getArgs());
+      Object returnValue = joinPoint.proceed(joinPoint.getArgs());
+      logExecution(joinPoint, interfaceLog, startTime, null);
+      return returnValue;
     } catch (Throwable e) {
       logExecution(joinPoint, interfaceLog, startTime, e);
       throw e;
     }
-    logExecution(joinPoint, interfaceLog, startTime, null);
-    return result;
   }
 
   private void logExecution(
@@ -40,59 +38,62 @@ public class InterfaceLogAspect {
       throws ReflectiveOperationException {
     interfaceLog = mergeAnnotations(joinPoint, interfaceLog);
     log(
-        e == null ? Level.INFO : Level.WARN,
-        getException(interfaceLog, e),
-        "{}{} | {} | {} | {} | {}ms | {}",
+        joinPoint.getTarget().getClass().getCanonicalName(),
+        getLevel(joinPoint, e),
+        getException(interfaceLog, joinPoint, e),
+        "{}{} | {} | {}ms | {} | {}",
         interfaceLog.prefix(),
         joinPoint.getSignature().getName(),
-        getResult(e),
-        getApplicationName(),
-        SecurityContextHolder.getContext().getAuthentication().getName(),
+        e == null,
         System.currentTimeMillis() - startTime,
         printParameters(joinPoint, interfaceLog),
-        interfaceLog.auditLog());
+        printException(interfaceLog, joinPoint, e));
+  }
+
+  private String printException(InterfaceLog interfaceLog, JoinPoint joinPoint, Throwable e) {
+    return e != null
+        ? String.format("%s(%s)", e.getClass().getCanonicalName(), e.getMessage())
+        : "";
   }
 
   private void log(
+      String className,
       Level level,
       Throwable cause,
       String template,
       String prefix,
       String method,
-      String result,
-      String application,
-      String user,
+      boolean success,
       Long time,
       String parameters,
-      boolean auditLog) {
-    LoggerFactory.getLogger("interface")
+      String exception) {
+    String result = success ? "OK" : "FAIL";
+    LoggerFactory.getLogger(className)
         .atLevel(level)
         .setCause(cause)
-        .log(template, prefix, method, result, application, user, time, parameters);
-    if (auditLog) {
-      LoggerFactory.getLogger("audit")
-          .atLevel(level)
-          .setCause(cause)
-          .log(template, prefix, method, result, application, user, time, parameters);
+        .log(template, prefix, method, result, time, parameters, exception);
+  }
+
+  private Level getLevel(JoinPoint joinPoint, Throwable e) {
+    return e != null && !isExpectedException(joinPoint, e) ? Level.WARN : Level.INFO;
+  }
+
+  private boolean isExpectedException(JoinPoint joinPoint, Throwable e) {
+    Method[] declaredMethods = joinPoint.getTarget().getClass().getDeclaredMethods();
+    for (Method method : declaredMethods) {
+      if (method.getName().equals(joinPoint.getSignature().getName())) {
+        for (Class<?> exception : method.getExceptionTypes()) {
+          if (exception.getCanonicalName().equals(e.getClass().getCanonicalName())) {
+            return true;
+          }
+        }
+      }
     }
+    return false;
   }
 
-  private Throwable getException(InterfaceLog interfaceLog, Throwable e) {
-    return e != null && (!interfaceLog.logStackTrace() || skipException(interfaceLog, e))
-        ? null
-        : e;
-  }
-
-  private String getResult(Throwable e) {
-    return e == null ? "OK" : "FAIL(" + e.getClass().getSimpleName() + ")";
-  }
-
-  private String getApplicationName() {
-    return "applicationName";
-  }
-
-  private boolean skipException(InterfaceLog interfaceLog, Throwable e) {
-    return Set.of(interfaceLog.excludeExceptions()).contains(e.getClass().getSimpleName());
+  private Throwable getException(InterfaceLog interfaceLog, JoinPoint joinPoint, Throwable e) {
+    return e != null && interfaceLog.stackTrace() && !isExpectedException(joinPoint, e) ? e : null;
   }
 
   private String printParameters(JoinPoint joinPoint, InterfaceLog interfaceLog)
@@ -102,40 +103,19 @@ public class InterfaceLogAspect {
     StringBuilder parameterString = new StringBuilder("[");
     for (int i = 0; i < parameters.length; i++) {
       if (isLogged(parameterNames, interfaceLog.exclude())) {
-        parameterString
-            .append(parameterNames[i])
-            .append(": ")
-            .append(printParameter(parameters[i], getPrinter(interfaceLog)))
-            .append(", ");
+        parameterString.append(String.format("%s: %s, ", parameterNames[i], parameters[i]));
       }
     }
     return parameterString.append("]").toString();
   }
 
-  private ParameterPrinter getPrinter(InterfaceLog interfaceLog)
-      throws ReflectiveOperationException {
-    if (StringUtils.isNotEmpty(interfaceLog.printer())) {
-      return (ParameterPrinter)
-          Class.forName(interfaceLog.printer()).getDeclaredConstructor().newInstance();
-    }
-    return null;
-  }
-
-  private String printParameter(Object parameter, ParameterPrinter printer) {
-    if (parameter == null) {
-      return "null";
-    }
-    return printer != null ? printer.print(parameter) : parameter.toString();
-  }
-
-  private boolean isLogged(String[] parameterNames, String[] skipArgs) {
-    return Collections.disjoint(Set.of(parameterNames), Set.of(skipArgs));
+  private boolean isLogged(String[] parameterNames, String[] skipParameters) {
+    return Collections.disjoint(Set.of(parameterNames), Set.of(skipParameters));
   }
 
   private InterfaceLog mergeAnnotations(JoinPoint joinPoint, InterfaceLog methodAnnotation) {
     InterfaceLog classAnnotation =
-        (InterfaceLog)
-            joinPoint.getSignature().getDeclaringType().getAnnotation(InterfaceLog.class);
+        joinPoint.getTarget().getClass().getAnnotation(InterfaceLog.class);
     if (classAnnotation == null) {
       return methodAnnotation;
     }

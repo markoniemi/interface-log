@@ -19,36 +19,17 @@ public class InterfaceLogMapper implements InterfaceLog {
   }
 
   @Override
-  public String printer() {
-    return StringUtils.isNotEmpty(methodAnnotation.printer())
-        ? methodAnnotation.printer()
-        : classAnnotation.printer();
-  }
-
-  @Override
   public String prefix() {
-    return StringUtils.isNotEmpty(methodAnnotation.prefix())
+    return StringUtils.isNotBlank(methodAnnotation.prefix())
         ? methodAnnotation.prefix()
         : classAnnotation.prefix();
   }
 
   @Override
-  public boolean logStackTrace() {
-    return !methodAnnotation.logStackTrace()
-        ? methodAnnotation.logStackTrace()
-        : classAnnotation.logStackTrace();
-  }
-
-  @Override
-  public boolean auditLog() {
-    return !methodAnnotation.auditLog() ? methodAnnotation.auditLog() : classAnnotation.auditLog();
-  }
-
-  @Override
-  public String[] excludeExceptions() {
-    return ArrayUtils.isNotEmpty(methodAnnotation.excludeExceptions())
-        ? methodAnnotation.excludeExceptions()
-        : classAnnotation.excludeExceptions();
+  public boolean stackTrace() {
+    return !methodAnnotation.stackTrace()
+        ? methodAnnotation.stackTrace()
+        : classAnnotation.stackTrace();
   }
 
   @Override
