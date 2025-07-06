@@ -1,0 +1,35 @@
+trigger:
+  - master
+  - feature/*
+
+pool:
+  vmImage: 'Ubuntu-24.04'
+
+variables:
+- group: tokens
+- name: MAVEN_CACHE_FOLDER
+  value: $(Pipeline.Workspace)/.m2/repository
+- name: MAVEN_OPTS
+  value: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+
+steps:
+- task: Cache@2
+  inputs:
+    key: 'maven | "$(Agent.OS)" | **/pom.xml'
+    restoreKeys: |
+      maven | "$(Agent.OS)"
+      maven
+    path: $(MAVEN_CACHE_FOLDER)
+  displayName: Cache Maven local repo
+- task: JavaToolInstaller@0
+  inputs:
+    versionSpec: '17'
+    jdkArchitectureOption: 'x64'
+    jdkSourceOption: 'PreInstalled'
+- task: Maven@3
+  inputs:
+    mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.17'
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'
+    goals: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn clean org.jacoco:jacoco-maven-plugin:prepare-agent install'
