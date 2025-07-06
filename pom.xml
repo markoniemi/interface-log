@@ -8,9 +8,10 @@
     <version>3.1.0</version>
     <relativePath /> <!-- lookup parent from repository -->
   </parent>
-  <groupId>org.example</groupId>
+  <groupId>io.github.markoniemi</groupId>
   <artifactId>interface-log</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+  <url>https://github.com/markoniemi/interface-log</url>
   <properties>
     <java.version>17</java.version>
     <org.mapstruct.version>1.6.0</org.mapstruct.version>
@@ -159,7 +160,23 @@
         </plugins>
       </build>
     </profile>
-  </profiles>
+    <profile>
+      <id>github</id>
+      <repositories>
+        <repository>
+          <id>central</id>
+          <url>https://repo1.maven.org/maven2</url>
+        </repository>
+        <repository>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/markoniemi/interface-log</url>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>  
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -184,4 +201,11 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>markoniemi</name>
+      <url>https://maven.pkg.github.com/markoniemi/interface-log</url>
+    </repository>
+  </distributionManagement>  
 </project>
