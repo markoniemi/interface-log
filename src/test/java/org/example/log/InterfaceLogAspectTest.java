@@ -17,8 +17,10 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ComponentScan(basePackageClasses = {MethodAnnotationService.class, ClassAnnotationService.class})
 @EnableAspectJAutoProxy
 class InterfaceLogAspectTest {
-  @Autowired MethodAnnotationService methodAnnotationService;
-  @Autowired ClassAnnotationService classAnnotationService;
+  @Autowired
+  MethodAnnotationService methodAnnotationService;
+  @Autowired
+  ClassAnnotationService classAnnotationService;
 
   @Test
   void useDefaults(CapturedOutput output) {
@@ -28,9 +30,16 @@ class InterfaceLogAspectTest {
 
   @Test
   void skipParameters(CapturedOutput output) throws Throwable {
-    methodAnnotationService.skipParameters(
-        new User("username", "password", "email", Role.ROLE_USER), true);
+    methodAnnotationService
+        .skipParameters(new User("username", "password", "email", Role.ROLE_USER), true);
     assertThat(output).contains("skipParameters | OK | ", " | []");
+  }
+
+  @Test
+  void doNotskipParameters(CapturedOutput output) throws Throwable {
+    classAnnotationService
+        .doNotskipParameters(new User("username", "password", "email", Role.ROLE_USER), true);
+    assertThat(output).contains("doNotskipParameters | OK | ", "[user:", "anotherParameter: true");
   }
 
   @Test
@@ -54,35 +63,26 @@ class InterfaceLogAspectTest {
 
   @Test
   void throwException(CapturedOutput output) throws Throwable {
-    assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            methodAnnotationService.throwException(
-                new User("username", "password", "email", Role.ROLE_USER)));
-    assertThat(output)
-        .contains(
-            "throwException | FAIL | ",
-            " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ] | ",
-            "IllegalArgumentException(update fails)");
+    assertThrows(IllegalArgumentException.class, () -> methodAnnotationService
+        .throwException(new User("username", "password", "email", Role.ROLE_USER)));
+    assertThat(output).contains("throwException | FAIL | ",
+        " | [user: User(id=null, username=username, email=email, role=ROLE_USER), ] | ",
+        "IllegalArgumentException(update fails)");
   }
 
   @Test
   void logExpectedException(CapturedOutput output) {
-    assertThrows(
-        IllegalArgumentException.class, () -> classAnnotationService.logExpectedException());
-    assertThat(output)
-        .contains("ClassAnnotationService", "INFO", "v1/logExpectedException | FAIL | ", " | []");
+    assertThrows(IllegalArgumentException.class,
+        () -> classAnnotationService.logExpectedException());
+    assertThat(output).contains("ClassAnnotationService", "INFO",
+        "v1/logExpectedException | FAIL | ", " | []");
   }
 
   @Test
   void logUnexpectedException(CapturedOutput output) {
     assertThrows(NullPointerException.class, () -> classAnnotationService.logUnexpectedException());
-    assertThat(output)
-        .contains(
-            "ClassAnnotationService",
-            "WARN",
-            "v1/logUnexpectedException | FAIL | ",
-            " | [] | ",
-            "NullPointerException(unexpected exception)");
+    assertThat(output).contains("ClassAnnotationService", "WARN",
+        "v1/logUnexpectedException | FAIL | ", " | [] | ",
+        "NullPointerException(unexpected exception)");
   }
 }

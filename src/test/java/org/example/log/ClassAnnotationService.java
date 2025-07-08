@@ -8,6 +8,11 @@ import org.springframework.stereotype.Service;
 @InterfaceLog(prefix = "v1/", stackTrace = true)
 public class ClassAnnotationService {
   @InterfaceLog
+  public User doNotskipParameters(User user, boolean anotherParameter) {
+    return null;
+  }
+
+  @InterfaceLog
   public void logExpectedException() throws IllegalArgumentException {
     throw new IllegalArgumentException("expected exception");
   }

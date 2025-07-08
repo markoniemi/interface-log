@@ -1,8 +1,12 @@
 package org.example.log;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -33,45 +37,26 @@ public class InterfaceLogAspect {
     }
   }
 
-  private void logExecution(
-      JoinPoint joinPoint, InterfaceLog interfaceLog, long startTime, Throwable e)
-      throws ReflectiveOperationException {
+  private void logExecution(JoinPoint joinPoint, InterfaceLog interfaceLog, long startTime,
+      Throwable e) throws ReflectiveOperationException {
     interfaceLog = mergeAnnotations(joinPoint, interfaceLog);
-    log(
-        joinPoint.getTarget().getClass().getCanonicalName(),
-        getLevel(joinPoint, e),
-        getException(interfaceLog, joinPoint, e),
-        "{}{} | {} | {}ms | {} | {}",
-        interfaceLog.prefix(),
-        joinPoint.getSignature().getName(),
-        e == null,
-        System.currentTimeMillis() - startTime,
-        printParameters(joinPoint, interfaceLog),
+    log(joinPoint.getTarget().getClass().getCanonicalName(), getLevel(joinPoint, e),
+        getException(interfaceLog, joinPoint, e), "{}{} | {} | {}ms | {} | {}",
+        interfaceLog.prefix(), joinPoint.getSignature().getName(), e == null,
+        System.currentTimeMillis() - startTime, printParameters(joinPoint, interfaceLog),
         printException(interfaceLog, joinPoint, e));
   }
 
   private String printException(InterfaceLog interfaceLog, JoinPoint joinPoint, Throwable e) {
-    return e != null
-        ? String.format("%s(%s)", e.getClass().getCanonicalName(), e.getMessage())
+    return e != null ? String.format("%s(%s)", e.getClass().getCanonicalName(), e.getMessage())
         : "";
   }
 
-  private void log(
-      String className,
-      Level level,
-      Throwable cause,
-      String template,
-      String prefix,
-      String method,
-      boolean success,
-      Long time,
-      String parameters,
-      String exception) {
+  private void log(String className, Level level, Throwable cause, String template, String prefix,
+      String method, boolean success, Long time, String parameters, String exception) {
     String result = success ? "OK" : "FAIL";
-    LoggerFactory.getLogger(className)
-        .atLevel(level)
-        .setCause(cause)
-        .log(template, prefix, method, result, time, parameters, exception);
+    LoggerFactory.getLogger(className).atLevel(level).setCause(cause).log(template, prefix, method,
+        result, time, parameters, exception);
   }
 
   private Level getLevel(JoinPoint joinPoint, Throwable e) {
@@ -98,7 +83,7 @@ public class InterfaceLogAspect {
 
   private String printParameters(JoinPoint joinPoint, InterfaceLog interfaceLog)
       throws ReflectiveOperationException {
-    String[] parameterNames = ((MethodSignature) joinPoint.getSignature()).getParameterNames();
+    String[] parameterNames = getParameterNames((MethodSignature) joinPoint.getSignature());
     Object[] parameters = joinPoint.getArgs();
     StringBuilder parameterString = new StringBuilder("[");
     for (int i = 0; i < parameters.length; i++) {
@@ -109,7 +94,20 @@ public class InterfaceLogAspect {
     return parameterString.append("]").toString();
   }
 
+  private String[] getParameterNames(MethodSignature signature) {
+    // signature.getParameterNames does not work on proxies
+    // https://stackoverflow.com/questions/25226441/java-aop-joinpoint-does-not-get-parameter-names
+    // return signature.getParameterNames();
+    List<String> parameterNames = new ArrayList<>();
+    for (Parameter parameter : signature.getMethod().getParameters()) {
+      parameterNames.add(parameter.getName());
+    }
+    return parameterNames.toArray(new String[0]);
+  }
+
   private boolean isLogged(String[] parameterNames, String[] skipParameters) {
+    // skipParameters is never null
+    // isLogged is not called if parameterNames is empty
     return Collections.disjoint(Set.of(parameterNames), Set.of(skipParameters));
   }
 
