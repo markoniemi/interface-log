@@ -160,22 +160,6 @@
         </plugins>
       </build>
     </profile>
-    <profile>
-      <id>github</id>
-      <repositories>
-        <repository>
-          <id>central</id>
-          <url>https://repo1.maven.org/maven2</url>
-        </repository>
-        <repository>
-          <id>github</id>
-          <url>https://maven.pkg.github.com/markoniemi/interface-log</url>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-        </repository>
-      </repositories>
-    </profile>
   </profiles>  
   <dependencyManagement>
     <dependencies>
@@ -203,9 +187,8 @@
   </dependencyManagement>
   <distributionManagement>
     <repository>
-      <id>github</id>
-      <name>markoniemi</name>
-      <url>https://maven.pkg.github.com/markoniemi/interface-log</url>
+      <id>repsy</id>
+      <url>https://repo.repsy.io/mvn/markoniemi/maven</url>
     </repository>
-  </distributionManagement>  
+  </distributionManagement>
 </project>
