@@ -27,8 +27,8 @@ jobs:
             <servers>
               <server>
                 <id>repsy</id>
-                <username>\${{ secrets.REPSY_USER }}</username>
-                <password>\${{ secrets.REPSY_TOKEN }}</password>
+                <username>\${env.MAVEN_USERNAME}</username>
+                <password>\${env.MAVEN_PASSWORD}</password>
               </server>
             </servers>
           </settings>
@@ -36,3 +36,6 @@ jobs:
 
       - name: Build with Maven
         run: mvn -batch-mode deploy
+        env:
+          MAVEN_USERNAME: ${{ secrets.REPSY_USER }}
+          MAVEN_PASSWORD: ${{ secrets.REPSY_TOKEN }}
