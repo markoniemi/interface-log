@@ -16,6 +16,9 @@ public class MethodAnnotationService {
     return null;
   }
 
+  @InterfaceLog(exclude = {"password", "password"})
+  public void excludeOneParameter(String username, String password) {}
+
   @InterfaceLog(prefix = "v1/")
   public int returnPrimitive() {
     return 0;

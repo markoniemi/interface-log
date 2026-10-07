@@ -27,9 +27,7 @@ public class InterfaceLogMapper implements InterfaceLog {
 
   @Override
   public boolean stackTrace() {
-    return !methodAnnotation.stackTrace()
-        ? methodAnnotation.stackTrace()
-        : classAnnotation.stackTrace();
+    return methodAnnotation.stackTrace() || classAnnotation.stackTrace();
   }
 
   @Override

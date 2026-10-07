@@ -3,43 +3,37 @@ package org.example.log;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
+import org.apache.commons.lang3.ArrayUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
 public class InterfaceLogAspect {
-  @Pointcut("@annotation(org.example.log.InterfaceLog)")
-  public void interfaceLog() {}
-
-  @Around(value = "@annotation(interfaceLog)", argNames = "interfaceLog")
-  public Object adviceAround(ProceedingJoinPoint joinPoint, InterfaceLog interfaceLog)
-      throws Throwable {
+  @Around("@annotation(org.example.log.InterfaceLog) || @within(org.example.log.InterfaceLog)")
+  public Object adviceAround(ProceedingJoinPoint joinPoint) throws Throwable {
     long startTime = System.currentTimeMillis();
     try {
       Object returnValue = joinPoint.proceed(joinPoint.getArgs());
-      logExecution(joinPoint, interfaceLog, startTime, null);
+      logExecution(joinPoint, startTime, null);
       return returnValue;
     } catch (Throwable e) {
-      logExecution(joinPoint, interfaceLog, startTime, e);
+      logExecution(joinPoint, startTime, e);
       throw e;
     }
   }
 
-  private void logExecution(JoinPoint joinPoint, InterfaceLog interfaceLog, long startTime,
-      Throwable e) throws ReflectiveOperationException {
-    interfaceLog = mergeAnnotations(joinPoint, interfaceLog);
+  private void logExecution(JoinPoint joinPoint, long startTime, Throwable e)
+      throws ReflectiveOperationException {
+    InterfaceLog interfaceLog = mergeAnnotations(joinPoint);
     log(joinPoint.getTarget().getClass().getCanonicalName(), getLevel(joinPoint, e),
         getException(interfaceLog, joinPoint, e), "{}{} | {} | {}ms | {} | {}",
         interfaceLog.prefix(), joinPoint.getSignature().getName(), e == null,
@@ -64,14 +58,10 @@ public class InterfaceLogAspect {
   }
 
   private boolean isExpectedException(JoinPoint joinPoint, Throwable e) {
-    Method[] declaredMethods = joinPoint.getTarget().getClass().getDeclaredMethods();
-    for (Method method : declaredMethods) {
-      if (method.getName().equals(joinPoint.getSignature().getName())) {
-        for (Class<?> exception : method.getExceptionTypes()) {
-          if (exception.getCanonicalName().equals(e.getClass().getCanonicalName())) {
-            return true;
-          }
-        }
+    Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+    for (Class<?> exception : method.getExceptionTypes()) {
+      if (exception.isAssignableFrom(e.getClass())) {
+        return true;
       }
     }
     return false;
@@ -87,7 +77,7 @@ public class InterfaceLogAspect {
     Object[] parameters = joinPoint.getArgs();
     StringBuilder parameterString = new StringBuilder("[");
     for (int i = 0; i < parameters.length; i++) {
-      if (isLogged(parameterNames, interfaceLog.exclude())) {
+      if (!ArrayUtils.contains(interfaceLog.exclude(), parameterNames[i])) {
         parameterString.append(String.format("%s: %s, ", parameterNames[i], parameters[i]));
       }
     }
@@ -105,15 +95,15 @@ public class InterfaceLogAspect {
     return parameterNames.toArray(new String[0]);
   }
 
-  private boolean isLogged(String[] parameterNames, String[] skipParameters) {
-    // skipParameters is never null
-    // isLogged is not called if parameterNames is empty
-    return Collections.disjoint(Set.of(parameterNames), Set.of(skipParameters));
-  }
-
-  private InterfaceLog mergeAnnotations(JoinPoint joinPoint, InterfaceLog methodAnnotation) {
+  private InterfaceLog mergeAnnotations(JoinPoint joinPoint) {
+    // the pointcut matches a method annotation, a class annotation or both
+    InterfaceLog methodAnnotation = AnnotationUtils.findAnnotation(
+        ((MethodSignature) joinPoint.getSignature()).getMethod(), InterfaceLog.class);
     InterfaceLog classAnnotation =
-        joinPoint.getTarget().getClass().getAnnotation(InterfaceLog.class);
+        AnnotationUtils.findAnnotation(joinPoint.getTarget().getClass(), InterfaceLog.class);
+    if (methodAnnotation == null) {
+      return classAnnotation;
+    }
     if (classAnnotation == null) {
       return methodAnnotation;
     }

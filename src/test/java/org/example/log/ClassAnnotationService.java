@@ -1,5 +1,7 @@
 package org.example.log;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,11 @@ public class ClassAnnotationService {
   @InterfaceLog
   public void logExpectedException() throws IllegalArgumentException {
     throw new IllegalArgumentException("expected exception");
+  }
+
+  @InterfaceLog
+  public void logExpectedSubclassException() throws IOException {
+    throw new FileNotFoundException("expected subclass exception");
   }
 
   @InterfaceLog(stackTrace = false)

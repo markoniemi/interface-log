@@ -3,6 +3,7 @@ package org.example.log;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.io.FileNotFoundException;
 import java.util.Date;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,13 +15,18 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith({SpringExtension.class, OutputCaptureExtension.class})
-@ComponentScan(basePackageClasses = {MethodAnnotationService.class, ClassAnnotationService.class})
+@ComponentScan(basePackageClasses = {MethodAnnotationService.class, ClassAnnotationService.class,
+    MethodStackTraceService.class, ClassOnlyAnnotationService.class})
 @EnableAspectJAutoProxy
 class InterfaceLogAspectTest {
   @Autowired
   MethodAnnotationService methodAnnotationService;
   @Autowired
   ClassAnnotationService classAnnotationService;
+  @Autowired
+  MethodStackTraceService methodStackTraceService;
+  @Autowired
+  ClassOnlyAnnotationService classOnlyAnnotationService;
 
   @Test
   void useDefaults(CapturedOutput output) {
@@ -33,6 +39,34 @@ class InterfaceLogAspectTest {
     methodAnnotationService
         .skipParameters(new User("username", "password", "email", Role.ROLE_USER), true);
     assertThat(output).contains("skipParameters | OK | ", " | []");
+  }
+
+  @Test
+  void skipOnlyNamedParameter(CapturedOutput output) {
+    methodAnnotationService.excludeOneParameter("username", "secret");
+    assertThat(output).contains("excludeOneParameter | OK | ", "username: username");
+    assertThat(output).doesNotContain("secret");
+  }
+
+  @Test
+  void methodStackTraceOverridesClassDefault(CapturedOutput output) {
+    assertThrows(NullPointerException.class, () -> methodStackTraceService.logStackTrace());
+    assertThat(output).contains("logStackTrace | FAIL | ", "\tat org.example.log.");
+  }
+
+  @Test
+  void logExpectedSubclassException(CapturedOutput output) {
+    assertThrows(FileNotFoundException.class,
+        () -> classAnnotationService.logExpectedSubclassException());
+    assertThat(output).contains("ClassAnnotationService", "INFO",
+        "v1/logExpectedSubclassException | FAIL | ");
+  }
+
+  @Test
+  void classAnnotationLogsMethodsWithoutAnnotation(CapturedOutput output) {
+    classOnlyAnnotationService.noMethodAnnotation("username", "secret");
+    assertThat(output).contains("class/noMethodAnnotation | OK | ", "username: username");
+    assertThat(output).doesNotContain("secret");
   }
 
   @Test
