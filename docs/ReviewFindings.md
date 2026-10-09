@@ -11,3 +11,10 @@ AuditLog annotation is a method-only annotation.
 
 May have as many test dependencies as necessary, but production dependencies could be minimized. Is aspect-maven plugin needed?
 
+### 3. Test improvement
+
+Move services and dto needed for testing to service and dto packages.
+
+### 4. Checked exception vs runtime exceptions
+
+Should it be automatic, that checked exceptions are not logged, and unexpected exceptions are?
