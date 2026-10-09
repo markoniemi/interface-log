@@ -6,6 +6,7 @@ AuditLog annotation is a method-only annotation.
 - either uses method name for logging, or uses name from parameter
 - logs one of the parameters
 - could it use springel to get item.id for logging. Perhaps relies on item.toString.
+- Parameters: prefix, parameterName (name of the parameter to log)
 
 ### 2. Reduce dependencies
 
